@@ -6,9 +6,9 @@ async function testComparison() {
   const service = new ScreenshotService();
   
   try {
-    // Test URLs (using simple, stable websites)
-    const urlA = 'https://httpbin.org/html';
-    const urlB = 'https://httpbin.org/json';
+    // Test URLs (using websites with actual full page content)
+    const urlA = 'https://www.wikipedia.org';
+    const urlB = 'https://www.github.com';
     
     console.log(`📸 Testing with URLs:`);
     console.log(`   A: ${urlA}`);
@@ -27,8 +27,8 @@ async function testComparison() {
     });
     
     console.log('✅ Viewport capture completed!');
-    console.log(`   Page A dimensions: ${result1.metadata.A.pageDimensions?.width || 'unknown'}x${result1.metadata.A.pageDimensions?.height || 'unknown'}`);
-    console.log(`   Page B dimensions: ${result1.metadata.B.pageDimensions?.width || 'unknown'}x${result1.metadata.B.pageDimensions?.height || 'unknown'}`);
+    console.log(`   Page A dimensions: ${result1.metadata.A.pageDimensions?.scrollWidth || 'unknown'}x${result1.metadata.A.pageDimensions?.scrollHeight || 'unknown'}`);
+    console.log(`   Page B dimensions: ${result1.metadata.B.pageDimensions?.scrollWidth || 'unknown'}x${result1.metadata.B.pageDimensions?.scrollHeight || 'unknown'}`);
     console.log(`   Mismatch: ${result1.metrics.mismatchPercent}%\n`);
     
     // Test 2: Full page capture
@@ -40,16 +40,22 @@ async function testComparison() {
     });
     
     console.log('✅ Full page capture completed!');
-    console.log(`   Page A dimensions: ${result2.metadata.A.pageDimensions?.width || 'unknown'}x${result2.metadata.A.pageDimensions?.height || 'unknown'}`);
-    console.log(`   Page B dimensions: ${result2.metadata.B.pageDimensions?.width || 'unknown'}x${result2.metadata.B.pageDimensions?.height || 'unknown'}`);
+    console.log(`   Page A dimensions: ${result2.metadata.A.pageDimensions?.scrollWidth || 'unknown'}x${result2.metadata.A.pageDimensions?.scrollHeight || 'unknown'}`);
+    console.log(`   Page B dimensions: ${result2.metadata.B.pageDimensions?.scrollWidth || 'unknown'}x${result2.metadata.B.pageDimensions?.scrollHeight || 'unknown'}`);
     console.log(`   Mismatch: ${result2.metrics.mismatchPercent}%\n`);
     
-    // Verify full page is actually larger
-    const viewportHeight = result1.metadata.A.pageDimensions?.height || 900;
-    const fullPageHeight = result2.metadata.A.pageDimensions?.height || 900;
+    // Verify full page is actually larger for the same page
+    const viewportHeightA = result1.metadata.A.pageDimensions?.scrollHeight || 900;
+    const fullPageHeightA = result2.metadata.A.pageDimensions?.scrollHeight || 900;
+    const viewportHeightB = result1.metadata.B.pageDimensions?.scrollHeight || 900;
+    const fullPageHeightB = result2.metadata.B.pageDimensions?.scrollHeight || 900;
     
-    if (fullPageHeight > viewportHeight) {
-      console.log('✅ Full page capture working: Full page height > Viewport height');
+    console.log(`\n📊 Dimension comparison:`);
+    console.log(`   Page A: Viewport ${viewportHeightA}px → Full page ${fullPageHeightA}px`);
+    console.log(`   Page B: Viewport ${viewportHeightB}px → Full page ${fullPageHeightB}px`);
+    
+    if (fullPageHeightA > viewportHeightA || fullPageHeightB > viewportHeightB) {
+      console.log('✅ Full page capture working: Full page heights > Viewport heights');
     } else {
       console.log('⚠️  Full page capture may not be working: Heights are similar');
     }

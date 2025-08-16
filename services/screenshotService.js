@@ -443,15 +443,15 @@ class ScreenshotService {
         // Check if new content loaded
         const newHeight = await page.evaluate(() => {
           return Math.max(
-            document.documentElement.scrollWidth,
-            document.body.scrollWidth
+            document.documentElement.scrollHeight,
+            document.body.scrollHeight
           );
         });
         
         const newWidth = await page.evaluate(() => {
           return Math.max(
-            document.documentElement.scrollHeight,
-            document.body.scrollHeight
+            document.documentElement.scrollWidth,
+            document.body.scrollWidth
           );
         });
         
@@ -631,8 +631,8 @@ class ScreenshotService {
         this.capturePage(urlB, options)
       ]);
 
-      console.log(`Page A captured: ${resultA.metadata.fullPage ? 'Full page' : 'Viewport only'}, dimensions: ${resultA.metadata.pageDimensions?.width || 'unknown'}x${resultA.metadata.pageDimensions?.height || 'unknown'}`);
-      console.log(`Page B captured: ${resultB.metadata.fullPage ? 'Full page' : 'Viewport only'}, dimensions: ${resultB.metadata.pageDimensions?.width || 'unknown'}x${resultB.metadata.pageDimensions?.height || 'unknown'}`);
+      console.log(`Page A captured: ${resultA.metadata.fullPage ? 'Full page' : 'Viewport only'}, dimensions: ${resultA.metadata.pageDimensions?.scrollWidth || 'unknown'}x${resultA.metadata.pageDimensions?.scrollHeight || 'unknown'}`);
+      console.log(`Page B captured: ${resultB.metadata.fullPage ? 'Full page' : 'Viewport only'}, dimensions: ${resultB.metadata.pageDimensions?.scrollWidth || 'unknown'}x${resultB.metadata.pageDimensions?.scrollHeight || 'unknown'}`);
 
       // Compute visual diff
       const diffResult = this.computeVisualDiff(

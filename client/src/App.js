@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Camera, Download, Settings, Eye, EyeOff, RotateCcw } from 'lucide-react';
+import { Camera, Download, Settings, Eye, EyeOff, RotateCcw, Upload, FileText } from 'lucide-react';
 import Navigation from './components/Navigation';
 import History from './components/History';
+import CSVImport from './components/CSVImport';
+import BatchResults from './components/BatchResults';
 import './App.css';
 
 function App() {
@@ -23,6 +25,12 @@ function App() {
   const [errorDetails, setErrorDetails] = useState(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [showCSVImport, setShowCSVImport] = useState(false);
+  const [batchComparisons, setBatchComparisons] = useState([]);
+  const [currentBatchIndex, setCurrentBatchIndex] = useState(0);
+  const [isBatchProcessing, setIsBatchProcessing] = useState(false);
+  const [batchResults, setBatchResults] = useState([]);
+  const [showBatchResults, setShowBatchResults] = useState(false);
 
   // Load comparison history when component mounts
   useEffect(() => {
@@ -73,6 +81,176 @@ function App() {
       setResults(null);
       setError(null);
       setErrorDetails(null);
+      setBatchComparisons([]);
+      setCurrentBatchIndex(0);
+      setBatchResults([]);
+      setShowBatchResults(false);
+    }
+  };
+
+  const handleCSVImport = (comparisons) => {
+    setBatchComparisons(comparisons);
+    setCurrentBatchIndex(0);
+    setShowCSVImport(false);
+    setBatchResults([]);
+    
+    // Auto-start batch processing if there are comparisons
+    if (comparisons.length > 0) {
+      startBatchProcessing(comparisons);
+    }
+  };
+
+  const startBatchProcessing = async (comparisons) => {
+    if (comparisons.length === 0) return;
+    
+    setIsBatchProcessing(true);
+    setCurrentBatchIndex(0);
+    setResults(null);
+    setError(null);
+    setErrorDetails(null);
+    setBatchResults([]);
+    
+    const results = [];
+    
+    // Process comparisons one by one
+    for (let i = 0; i < comparisons.length; i++) {
+      setCurrentBatchIndex(i);
+      
+      try {
+        const comparison = comparisons[i];
+        setFormData(prev => ({
+          ...prev,
+          urlA: comparison.urlA,
+          urlB: comparison.urlB
+        }));
+        
+        // Wait a bit between comparisons to avoid overwhelming the server
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
+        // Process this comparison
+        const result = await processComparison(comparison.urlA, comparison.urlB, true);
+        
+        // Add to batch results
+        if (result) {
+          results.push({
+            ...result,
+            urlA: comparison.urlA,
+            urlB: comparison.urlB,
+            batchIndex: i,
+            originalData: comparison.originalData
+          });
+        } else {
+          // Handle failed comparison
+          results.push({
+            urlA: comparison.urlA,
+            urlB: comparison.urlB,
+            batchIndex: i,
+            originalData: comparison.originalData,
+            error: 'Comparison failed',
+            errorDetails: {
+              suggestion: 'Try processing this comparison individually'
+            }
+          });
+        }
+        
+      } catch (error) {
+        console.error(`Batch comparison ${i + 1} failed:`, error);
+        
+        // Add error result
+        results.push({
+          urlA: comparisons[i].urlA,
+          urlB: comparisons[i].urlB,
+          batchIndex: i,
+          originalData: comparisons[i].originalData,
+          error: error.message || 'Comparison failed',
+          errorDetails: {
+            suggestion: 'Try processing this comparison individually'
+          }
+        });
+      }
+    }
+    
+    setIsBatchProcessing(false);
+    setCurrentBatchIndex(0);
+    setBatchResults(results);
+    
+    // Show batch results
+    setShowBatchResults(true);
+  };
+
+  const processComparison = async (urlA, urlB, isBatch = false) => {
+    if (!isBatch) {
+      setIsLoading(true);
+    }
+    setError(null);
+    setErrorDetails(null);
+    if (!isBatch) {
+      setResults(null);
+      setProgress(0);
+    }
+
+    try {
+      // Simulate progress for non-batch comparisons
+      let progressInterval;
+      if (!isBatch) {
+        progressInterval = setInterval(() => {
+          setProgress(prev => Math.min(prev + Math.random() * 20, 90));
+        }, 500);
+      }
+
+      const response = await axios.post('/api/compare-ui', {
+        urlA,
+        urlB,
+        options: {
+          fullPage: formData.fullPage,
+          diffThreshold: parseFloat(formData.diffThreshold),
+          includeAA: formData.includeAA,
+          waitFor: formData.waitFor,
+          maskSelectors: formData.maskSelectors.split(',').map(s => s.trim()).filter(Boolean)
+        }
+      });
+
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        setProgress(100);
+      }
+
+      const result = response.data;
+      
+      if (!isBatch) {
+        setResults(result);
+        // Save to history
+        saveComparisonToHistory(result);
+        // Reset progress after a delay
+        setTimeout(() => setProgress(0), 1000);
+      }
+
+      return result;
+
+    } catch (err) {
+      console.error('Comparison failed:', err);
+      
+      const errorData = err.response?.data || {};
+      const errorCode = errorData.code || 'UNKNOWN_ERROR';
+      const errorMessage = errorData.error || err.message || 'Comparison failed';
+      
+      if (!isBatch) {
+        setError(getErrorMessage(errorCode, errorMessage));
+        setErrorDetails({
+          code: errorCode,
+          suggestion: getErrorSuggestion(errorCode),
+          timestamp: errorData.timestamp || new Date().toISOString(),
+          details: errorData
+        });
+      }
+
+      throw err;
+    } finally {
+      if (!isBatch) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -151,58 +329,7 @@ function App() {
     
     if (!validateUrls()) return;
 
-    setIsLoading(true);
-    setError(null);
-    setErrorDetails(null);
-    setResults(null);
-    setProgress(0);
-
-    try {
-      // Simulate progress
-      const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + Math.random() * 20, 90));
-      }, 500);
-
-      const response = await axios.post('/api/compare-ui', {
-        urlA: formData.urlA,
-        urlB: formData.urlB,
-        options: {
-          fullPage: formData.fullPage,
-          diffThreshold: parseFloat(formData.diffThreshold),
-          includeAA: formData.includeAA,
-          waitFor: formData.waitFor,
-          maskSelectors: formData.maskSelectors.split(',').map(s => s.trim()).filter(Boolean)
-        }
-      });
-
-      clearInterval(progressInterval);
-      setProgress(100);
-
-      setResults(response.data);
-      
-      // Save to history
-      saveComparisonToHistory(response.data);
-      
-      // Reset progress after a delay
-      setTimeout(() => setProgress(0), 1000);
-
-    } catch (err) {
-      console.error('Comparison failed:', err);
-      
-      const errorData = err.response?.data || {};
-      const errorCode = errorData.code || 'UNKNOWN_ERROR';
-      const errorMessage = errorData.error || err.message || 'Comparison failed';
-      
-      setError(getErrorMessage(errorCode, errorMessage));
-      setErrorDetails({
-        code: errorCode,
-        suggestion: getErrorSuggestion(errorCode),
-        timestamp: errorData.timestamp || new Date().toISOString(),
-        details: errorData
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    await processComparison(formData.urlA, formData.urlB);
   };
 
   const downloadImage = (base64Data, filename) => {
@@ -241,6 +368,19 @@ function App() {
     setError(null);
     setErrorDetails(null);
     setProgress(0);
+    setBatchComparisons([]);
+    setCurrentBatchIndex(0);
+    setBatchResults([]);
+    setShowBatchResults(false);
+  };
+
+  const handleBatchResultsClose = () => {
+    setShowBatchResults(false);
+  };
+
+  const handleNewComparison = () => {
+    setShowBatchResults(false);
+    resetForm();
   };
 
   const handleDeleteComparison = (id) => {
@@ -259,9 +399,39 @@ function App() {
 
       <main className="main-content">
         <div className="container">
+          {/* Batch Processing Status */}
+          {isBatchProcessing && batchComparisons.length > 0 && (
+            <div className="batch-status">
+              <h3>Batch Processing</h3>
+              <div className="batch-progress">
+                <div className="batch-info">
+                  <span>Processing {currentBatchIndex + 1} of {batchComparisons.length}</span>
+                  <span className="current-urls">
+                    {batchComparisons[currentBatchIndex]?.urlA} vs {batchComparisons[currentBatchIndex]?.urlB}
+                  </span>
+                </div>
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill" 
+                    style={{ width: `${((currentBatchIndex + 1) / batchComparisons.length) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Comparison Form */}
           <section className="form-section">
-            <h2>Compare Two Websites</h2>
+            <div className="form-header">
+              <h2>Compare Two Websites</h2>
+              <button
+                onClick={() => setShowCSVImport(true)}
+                className="btn btn-secondary csv-import-btn"
+              >
+                <FileText size={16} />
+                Import from CSV
+              </button>
+            </div>
             
             <form onSubmit={handleSubmit}>
               <div className="form-row">
@@ -286,9 +456,9 @@ function App() {
                     id="urlB"
                     name="urlB"
                     className="form-control"
+                    placeholder="https://example2.com"
                     value={formData.urlB}
                     onChange={handleInputChange}
-                    placeholder="https://example2.com"
                     required
                   />
                 </div>
@@ -395,7 +565,7 @@ function App() {
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={isLoading}
+                  disabled={isLoading || isBatchProcessing}
                 >
                   <Camera size={16} />
                   {isLoading ? 'Comparing...' : 'Start Comparison'}
@@ -588,6 +758,23 @@ function App() {
           )}
         </div>
       </main>
+
+      {/* CSV Import Modal */}
+      {showCSVImport && (
+        <CSVImport
+          onImport={handleCSVImport}
+          onClose={() => setShowCSVImport(false)}
+        />
+      )}
+
+      {/* Batch Results Modal */}
+      {showBatchResults && batchResults.length > 0 && (
+        <BatchResults
+          results={batchResults}
+          onClose={handleBatchResultsClose}
+          onNewComparison={handleNewComparison}
+        />
+      )}
     </>
   );
 

@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Camera, Download, Settings, Eye, EyeOff, RotateCcw } from 'lucide-react';
+import Navigation from './components/Navigation';
+import History from './components/History';
 import './App.css';
 
 function App() {
+  const [currentPage, setCurrentPage] = useState('compare');
   const [formData, setFormData] = useState({
     urlA: '',
     urlB: '',
@@ -20,6 +23,58 @@ function App() {
   const [errorDetails, setErrorDetails] = useState(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [progress, setProgress] = useState(0);
+
+  // Load comparison history when component mounts
+  useEffect(() => {
+    loadComparisonHistory();
+  }, []);
+
+  const loadComparisonHistory = () => {
+    const saved = localStorage.getItem('comparisonHistory');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (!Array.isArray(parsed)) {
+          localStorage.removeItem('comparisonHistory');
+        }
+      } catch (e) {
+        localStorage.removeItem('comparisonHistory');
+      }
+    }
+  };
+
+  const saveComparisonToHistory = (comparisonResult) => {
+    try {
+      const existing = localStorage.getItem('comparisonHistory');
+      let history = existing ? JSON.parse(existing) : [];
+      
+      if (!Array.isArray(history)) {
+        history = [];
+      }
+      
+      // Add new comparison to the beginning
+      history.unshift(comparisonResult);
+      
+      // Keep only last 50 comparisons to prevent localStorage from getting too large
+      if (history.length > 50) {
+        history = history.slice(0, 50);
+      }
+      
+      localStorage.setItem('comparisonHistory', JSON.stringify(history));
+    } catch (e) {
+      console.error('Failed to save comparison to history:', e);
+    }
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    // Clear any existing results when switching pages
+    if (page === 'compare') {
+      setResults(null);
+      setError(null);
+      setErrorDetails(null);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -125,6 +180,9 @@ function App() {
 
       setResults(response.data);
       
+      // Save to history
+      saveComparisonToHistory(response.data);
+      
       // Reset progress after a delay
       setTimeout(() => setProgress(0), 1000);
 
@@ -181,11 +239,17 @@ function App() {
     });
     setResults(null);
     setError(null);
+    setErrorDetails(null);
     setProgress(0);
   };
 
-  return (
-    <div className="App">
+  const handleDeleteComparison = (id) => {
+    // This will be handled by the History component
+    // We can add additional logic here if needed
+  };
+
+  const renderComparePage = () => (
+    <>
       <header className="header">
         <div className="container">
           <h1><Camera size={48} /> Pixel Perfect POC</h1>
@@ -524,6 +588,14 @@ function App() {
           )}
         </div>
       </main>
+    </>
+  );
+
+  return (
+    <div className="App">
+      <Navigation currentPage={currentPage} onPageChange={handlePageChange} />
+      
+      {currentPage === 'compare' ? renderComparePage() : <History onDeleteComparison={handleDeleteComparison} />}
     </div>
   );
 }

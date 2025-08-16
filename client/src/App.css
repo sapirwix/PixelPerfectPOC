@@ -3,6 +3,11 @@
   min-height: 100vh;
 }
 
+/* Remove header styles since we now have navigation */
+.main-content {
+  padding: 1rem 0;
+}
+
 /* Form validation styles */
 .form-control:invalid {
   border-color: var(--error-color);

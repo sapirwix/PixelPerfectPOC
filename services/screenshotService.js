@@ -55,6 +55,14 @@ class ScreenshotService {
     const page = await this.context.newPage();
 
     try {
+      // Set viewport size explicitly for consistent capture
+      await page.setViewportSize({
+        width: this.viewportWidth || 1440,
+        height: this.viewportHeight || 900
+      });
+
+      console.log(`Viewport set to: ${this.viewportWidth || 1440}x${this.viewportHeight || 900}`);
+
       // Inject stabilization scripts before navigation
       await page.addInitScript(() => {
         // Freeze animations and transitions
@@ -143,16 +151,42 @@ class ScreenshotService {
       // Additional stabilization delay
       await page.waitForTimeout(stabilizationDelay);
 
-      // Scroll to ensure lazy loaded content
+      // For full page capture, ensure we scroll to load all content
       if (fullPage) {
         await this.scrollToLoadContent(page);
+        
+        // Get the actual page dimensions after scrolling
+        const pageDimensions = await page.evaluate(() => {
+          return {
+            width: Math.max(
+              document.documentElement.scrollWidth,
+              document.body.scrollWidth,
+              document.documentElement.offsetWidth,
+              document.body.offsetWidth
+            ),
+            height: Math.max(
+              document.documentElement.scrollHeight,
+              document.body.scrollHeight,
+              document.documentElement.offsetHeight,
+              document.body.offsetHeight
+            )
+          };
+        });
+        
+        console.log(`Page dimensions after scroll: ${pageDimensions.width}x${pageDimensions.height}`);
+        
+        // Scroll back to top for consistent capture
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await page.waitForTimeout(500);
       }
 
-      // Capture screenshot
+      // Capture screenshot with proper options
       let screenshot;
+      let captureMethod = 'unknown';
+      
       try {
         const screenshotOptions = {
-          fullPage,
+          fullPage: fullPage,
           type: 'png'
         };
 
@@ -179,26 +213,120 @@ class ScreenshotService {
           throw new Error('Invalid clip dimensions for screenshot capture');
         }
 
-        screenshot = await page.screenshot(screenshotOptions);
-      } catch (screenshotError) {
-        if (screenshotError.message.includes('Page crashed')) {
-          throw new Error(`Page crashed while taking screenshot. The site may have JavaScript errors or be too resource-intensive.`);
-        } else if (screenshotError.message.includes('Screenshot timeout')) {
-          throw new Error(`Screenshot capture timed out. The page may be too large or complex.`);
-        } else if (screenshotError.message.includes('clip: expected object, got null')) {
-          throw new Error(`Screenshot configuration error. Please try again or contact support.`);
-        } else if (screenshotError.message.includes('Invalid viewport dimensions')) {
-          throw new Error(`Viewport configuration error. Please try again.`);
-        } else if (screenshotError.message.includes('Invalid clip dimensions')) {
-          throw new Error(`Screenshot area configuration error. Please try again.`);
+        console.log(`Capturing screenshot with options:`, {
+          fullPage: screenshotOptions.fullPage,
+          clip: screenshotOptions.clip ? 'viewport' : 'full page',
+          viewportSize: { width: this.viewportWidth, height: this.viewportHeight }
+        });
+
+        // For full page capture, let's try a different approach
+        if (fullPage) {
+          console.log('Attempting full page capture...');
+          
+          // First, try the standard fullPage option
+          try {
+            screenshot = await page.screenshot(screenshotOptions);
+            captureMethod = 'standard_fullPage';
+            console.log(`Standard fullPage screenshot captured. Size: ${screenshot.length} bytes`);
+          } catch (fullPageError) {
+            console.log(`Standard fullPage failed: ${fullPageError.message}, trying alternative method...`);
+            
+            // Alternative: manually calculate full page dimensions and use clip
+            const fullPageDimensions = await page.evaluate(() => {
+              const body = document.body;
+              const html = document.documentElement;
+              
+              return {
+                width: Math.max(
+                  body.scrollWidth,
+                  body.offsetWidth,
+                  html.clientWidth,
+                  html.scrollWidth,
+                  html.offsetWidth
+                ),
+                height: Math.max(
+                  body.scrollHeight,
+                  body.offsetHeight,
+                  html.clientHeight,
+                  html.scrollHeight,
+                  html.offsetHeight
+                )
+              };
+            });
+            
+            console.log(`Calculated full page dimensions: ${fullPageDimensions.width}x${fullPageDimensions.height}`);
+            
+            // Use clip with calculated dimensions
+            screenshotOptions.clip = {
+              x: 0,
+              y: 0,
+              width: fullPageDimensions.width,
+              height: fullPageDimensions.height
+            };
+            
+            // Remove fullPage option when using clip
+            delete screenshotOptions.fullPage;
+            
+            console.log(`Using clip-based full page capture: ${fullPageDimensions.width}x${fullPageDimensions.height}`);
+            screenshot = await page.screenshot(screenshotOptions);
+            captureMethod = 'clip_based_fullPage';
+            console.log(`Clip-based full page screenshot captured. Size: ${screenshot.length} bytes`);
+          }
         } else {
-          throw new Error(`Screenshot capture failed: ${screenshotError.message}`);
+          // Viewport capture
+          screenshot = await page.screenshot(screenshotOptions);
+          captureMethod = 'viewport';
+          console.log(`Viewport screenshot captured. Size: ${screenshot.length} bytes`);
+        }
+        
+        console.log(`Screenshot captured successfully using method: ${captureMethod}. Size: ${screenshot.length} bytes`);
+        
+      } catch (screenshotError) {
+        console.error('Screenshot error details:', screenshotError);
+        
+        // Fallback: try viewport capture if full page fails
+        if (fullPage && !screenshot) {
+          console.log('Full page capture failed, falling back to viewport capture...');
+          try {
+            screenshot = await page.screenshot({
+              type: 'png',
+              clip: {
+                x: 0,
+                y: 0,
+                width: this.viewportWidth || 1440,
+                height: this.viewportHeight || 900
+              }
+            });
+            captureMethod = 'fallback_viewport';
+            console.log(`Fallback viewport screenshot captured. Size: ${screenshot.length} bytes`);
+          } catch (fallbackError) {
+            console.error('Fallback capture also failed:', fallbackError.message);
+            throw screenshotError; // Throw original error
+          }
+        } else {
+          throw screenshotError;
         }
       }
 
       // Get page metadata
       const title = await page.title().catch(() => '');
       const finalUrl = page.url();
+      
+      // Get final page dimensions
+      const finalDimensions = await page.evaluate(() => {
+        return {
+          viewportWidth: window.innerWidth,
+          viewportHeight: window.innerHeight,
+          scrollWidth: Math.max(
+            document.documentElement.scrollWidth,
+            document.body.scrollWidth
+          ),
+          scrollHeight: Math.max(
+            document.documentElement.scrollHeight,
+            document.body.scrollHeight
+          )
+        };
+      });
 
       await page.close();
 
@@ -208,8 +336,13 @@ class ScreenshotService {
           url: finalUrl,
           title,
           timestamp: new Date().toISOString(),
-          viewport: { width: 1440, height: 900 },
-          fullPage
+          viewport: { 
+            width: this.viewportWidth || 1440, 
+            height: this.viewportHeight || 900 
+          },
+          fullPage,
+          pageDimensions: finalDimensions,
+          captureMethod
         }
       };
 
@@ -271,34 +404,104 @@ class ScreenshotService {
 
   async scrollToLoadContent(page) {
     try {
-      // Get initial scroll height
-      let lastHeight = await page.evaluate(() => document.body.scrollHeight);
+      console.log('Starting content loading scroll...');
+      
+      // Get initial scroll dimensions
+      let lastHeight = await page.evaluate(() => {
+        return Math.max(
+          document.documentElement.scrollHeight,
+          document.body.scrollHeight
+        );
+      });
+      
+      let lastWidth = await page.evaluate(() => {
+        return Math.max(
+          document.documentElement.scrollWidth,
+          document.body.scrollWidth
+        );
+      });
+      
+      console.log(`Initial dimensions: ${lastWidth}x${lastHeight}`);
       
       // Scroll down in chunks to load lazy content
       let currentPosition = 0;
-      const scrollStep = 800;
+      const scrollStep = Math.min(800, lastHeight / 4); // Adaptive scroll step
+      let scrollAttempts = 0;
+      const maxScrollAttempts = 20; // Prevent infinite scrolling
       
-      while (currentPosition < lastHeight) {
+      while (currentPosition < lastHeight && scrollAttempts < maxScrollAttempts) {
         currentPosition += scrollStep;
-        await page.evaluate((pos) => window.scrollTo(0, pos), currentPosition);
-        await page.waitForTimeout(200);
+        
+        // Scroll to position
+        await page.evaluate((pos) => {
+          window.scrollTo(0, pos);
+        }, currentPosition);
+        
+        // Wait for content to load
+        await page.waitForTimeout(300);
         
         // Check if new content loaded
-        const newHeight = await page.evaluate(() => document.body.scrollHeight);
-        if (newHeight > lastHeight) {
+        const newHeight = await page.evaluate(() => {
+          return Math.max(
+            document.documentElement.scrollWidth,
+            document.body.scrollWidth
+          );
+        });
+        
+        const newWidth = await page.evaluate(() => {
+          return Math.max(
+            document.documentElement.scrollHeight,
+            document.body.scrollHeight
+          );
+        });
+        
+        if (newHeight > lastHeight || newWidth > lastWidth) {
+          console.log(`New content loaded: ${newWidth}x${newHeight}`);
           lastHeight = newHeight;
+          lastWidth = newWidth;
         }
         
-        // Prevent infinite scrolling
-        if (currentPosition > 10000) break;
+        scrollAttempts++;
+        
+        // Prevent excessive scrolling for very long pages
+        if (lastHeight > 50000) {
+          console.log('Page is very long, limiting scroll depth');
+          break;
+        }
       }
       
       // Scroll back to top
-      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.evaluate(() => {
+        window.scrollTo(0, 0);
+      });
+      
+      // Wait for any final animations to settle
       await page.waitForTimeout(500);
+      
+      // Get final dimensions
+      const finalDimensions = await page.evaluate(() => {
+        return {
+          width: Math.max(
+            document.documentElement.scrollWidth,
+            document.body.scrollWidth,
+            document.documentElement.offsetWidth,
+            document.body.offsetWidth
+          ),
+          height: Math.max(
+            document.documentElement.scrollHeight,
+            document.body.scrollHeight,
+            document.documentElement.offsetHeight,
+            document.body.offsetHeight
+          )
+        };
+      });
+      
+      console.log(`Final page dimensions after scroll: ${finalDimensions.width}x${finalDimensions.height}`);
+      console.log(`Content loading scroll completed in ${scrollAttempts} attempts`);
       
     } catch (e) {
       console.warn('Scroll loading failed:', e.message);
+      // Continue with screenshot capture even if scrolling fails
     }
   }
 
@@ -419,6 +622,7 @@ class ScreenshotService {
   async comparePages(urlA, urlB, options = {}) {
     const comparisonId = uuidv4();
     console.log(`Starting comparison ${comparisonId}: ${urlA} vs ${urlB}`);
+    console.log('Comparison options:', options);
 
     try {
       // Capture both pages in parallel
@@ -426,6 +630,9 @@ class ScreenshotService {
         this.capturePage(urlA, options),
         this.capturePage(urlB, options)
       ]);
+
+      console.log(`Page A captured: ${resultA.metadata.fullPage ? 'Full page' : 'Viewport only'}, dimensions: ${resultA.metadata.pageDimensions?.width || 'unknown'}x${resultA.metadata.pageDimensions?.height || 'unknown'}`);
+      console.log(`Page B captured: ${resultB.metadata.fullPage ? 'Full page' : 'Viewport only'}, dimensions: ${resultB.metadata.pageDimensions?.width || 'unknown'}x${resultB.metadata.pageDimensions?.height || 'unknown'}`);
 
       // Compute visual diff
       const diffResult = this.computeVisualDiff(
@@ -442,7 +649,7 @@ class ScreenshotService {
       const imageB = PNG.sync.write(diffResult.images.original.B);
       const imageDiff = PNG.sync.write(diffResult.images.diff);
 
-      return {
+      const finalResult = {
         id: comparisonId,
         urls: { A: urlA, B: urlB },
         metadata: {
@@ -457,6 +664,11 @@ class ScreenshotService {
         },
         metrics: diffResult.metrics
       };
+
+      console.log(`Comparison ${comparisonId} completed successfully`);
+      console.log(`Final metrics: mismatch ${diffResult.metrics.mismatchPercent}%, changed pixels: ${diffResult.metrics.changedPixels}`);
+
+      return finalResult;
 
     } catch (error) {
       console.error(`Comparison ${comparisonId} failed:`, error);

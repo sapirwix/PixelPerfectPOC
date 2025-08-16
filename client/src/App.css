@@ -225,3 +225,106 @@
     height: auto;
   }
 }
+
+/* Modal styles for full-size images */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: var(--surface-color);
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  position: relative;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
+}
+
+.modal-content h3 {
+  margin: 0 0 1rem 0;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.modal-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 1rem;
+}
+
+.modal-content p {
+  margin: 0 0 1.5rem 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  word-break: break-all;
+}
+
+.modal-content .btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.5rem;
+  min-width: auto;
+  background: var(--error-color);
+  border: none;
+  color: white;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.modal-content .btn:hover {
+  background: #dc2626;
+}
+
+/* Make image containers clickable */
+.image-container {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.image-container:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.image-container:active {
+  transform: translateY(0);
+}
+
+/* Responsive modal adjustments */
+@media (max-width: 768px) {
+  .modal-content {
+    padding: 1.5rem;
+    max-width: 95vw;
+    max-height: 95vh;
+  }
+  
+  .modal-content .btn {
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 36px;
+    height: 36px;
+  }
+}

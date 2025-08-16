@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Camera, Download, Settings, Eye, EyeOff, RotateCcw, Upload, FileText } from 'lucide-react';
+import { Camera, Download, Settings, Eye, EyeOff, RotateCcw, Upload, FileText, X } from 'lucide-react';
 import Navigation from './components/Navigation';
 import History from './components/History';
 import CSVImport from './components/CSVImport';
@@ -31,6 +31,11 @@ function App() {
   const [isBatchProcessing, setIsBatchProcessing] = useState(false);
   const [batchResults, setBatchResults] = useState([]);
   const [showBatchResults, setShowBatchResults] = useState(false);
+  
+  // Modal state
+  const [modalImage, setModalImage] = useState(null);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalUrl, setModalUrl] = useState('');
 
   // Load comparison history when component mounts
   useEffect(() => {
@@ -388,6 +393,18 @@ function App() {
     // We can add additional logic here if needed
   };
 
+  const openModal = (imageData, url, title) => {
+    setModalImage(imageData);
+    setModalUrl(url);
+    setModalTitle(title);
+  };
+
+  const closeModal = () => {
+    setModalImage(null);
+    setModalUrl('');
+    setModalTitle('');
+  };
+
   const renderComparePage = () => (
     <>
       <header className="header">
@@ -707,7 +724,7 @@ function App() {
 
               {/* Comparison Viewer */}
               <div className="comparison-viewer">
-                <div className="image-container">
+                <div className="image-container" onClick={() => openModal(results.images.A, results.urls.A, 'Site A')}>
                   <h4>Site A</h4>
                   <img
                     src={`data:image/png;base64,${results.images.A}`}
@@ -719,7 +736,7 @@ function App() {
                   </p>
                 </div>
 
-                <div className="image-container">
+                <div className="image-container" onClick={() => openModal(results.images.B, results.urls.B, 'Site B')}>
                   <h4>Site B</h4>
                   <img
                     src={`data:image/png;base64,${results.images.B}`}
@@ -731,7 +748,7 @@ function App() {
                   </p>
                 </div>
 
-                <div className="image-container">
+                <div className="image-container" onClick={() => openModal(results.images.diff, 'Visual Diff', 'Visual Diff')}>
                   <h4>Visual Diff</h4>
                   <img
                     src={`data:image/png;base64,${results.images.diff}`}
@@ -774,6 +791,20 @@ function App() {
           onClose={handleBatchResultsClose}
           onNewComparison={handleNewComparison}
         />
+      )}
+
+      {/* Modal for full-size images */}
+      {modalImage && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="btn" onClick={closeModal}>
+              <X size={20} />
+            </button>
+            <h3>{modalTitle}</h3>
+            <img src={`data:image/png;base64,${modalImage}`} alt={modalTitle} />
+            <p>{modalUrl}</p>
+          </div>
+        </div>
       )}
     </>
   );

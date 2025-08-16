@@ -1,0 +1,131 @@
+/* Additional App-specific styles */
+.App {
+  min-height: 100vh;
+}
+
+/* Form validation styles */
+.form-control:invalid {
+  border-color: var(--error-color);
+}
+
+.form-control:invalid:focus {
+  box-shadow: 0 0 0 3px rgb(220 38 38 / 0.1);
+}
+
+/* Button states */
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.3);
+}
+
+/* Loading animation enhancements */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.loading p {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Image hover effects */
+.comparison-image {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.comparison-image:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-lg);
+  z-index: 10;
+  position: relative;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .header h1 {
+    font-size: 2rem;
+  }
+  
+  .header p {
+    font-size: 1rem;
+  }
+  
+  .form-section {
+    padding: 1.5rem;
+  }
+  
+  .results-section {
+    padding: 1.5rem;
+  }
+  
+  .comparison-viewer {
+    gap: 0.5rem;
+  }
+  
+  .download-section {
+    gap: 0.5rem;
+  }
+  
+  .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* Dark mode support (if user prefers) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-color: #0f172a;
+    --surface-color: #1e293b;
+    --border-color: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+  }
+  
+  .form-control {
+    background-color: #1e293b;
+    color: #f1f5f9;
+  }
+  
+  .form-control::placeholder {
+    color: #64748b;
+  }
+  
+  .metric-card {
+    background: #0f172a;
+  }
+  
+  .advanced-options {
+    background: #0f172a;
+  }
+}
+
+/* Print styles */
+@media print {
+  .header,
+  .form-section,
+  .btn,
+  .download-section {
+    display: none !important;
+  }
+  
+  .results-section {
+    box-shadow: none;
+    border: none;
+  }
+  
+  .comparison-viewer {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+  }
+  
+  .comparison-image {
+    max-width: 100%;
+    height: auto;
+  }
+}

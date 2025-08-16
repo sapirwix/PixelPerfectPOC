@@ -1,0 +1,41 @@
+{
+  "name": "pixel-perfect-poc",
+  "version": "1.0.0",
+  "description": "Visual UI comparison tool using Playwright and pixelmatch",
+  "main": "server.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "server:dev": "nodemon server.js",
+    "client:dev": "cd client && npm start",
+    "build": "cd client && npm run build",
+    "start": "node server.js",
+    "install:all": "npm install && cd client && npm install",
+    "test": "node test-compare.js",
+    "postinstall": "npx playwright install chromium"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
+    "playwright": "^1.40.0",
+    "pixelmatch": "^5.3.0",
+    "pngjs": "^7.0.0",
+    "path": "^0.12.7",
+    "fs-extra": "^11.1.1",
+    "uuid": "^9.0.1",
+    "helmet": "^7.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "visual-testing",
+    "playwright",
+    "screenshot",
+    "comparison",
+    "ui-testing"
+  ],
+  "author": "",
+  "license": "MIT"
+}

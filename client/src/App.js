@@ -37,6 +37,9 @@ function App() {
   const [modalTitle, setModalTitle] = useState('');
   const [modalUrl, setModalUrl] = useState('');
 
+  const [importedURLs, setImportedURLs] = useState([]);
+  const [showImportedURLs, setShowImportedURLs] = useState(false);
+
   // Load comparison history when component mounts
   useEffect(() => {
     loadComparisonHistory();
@@ -94,15 +97,34 @@ function App() {
   };
 
   const handleCSVImport = (comparisons) => {
-    setBatchComparisons(comparisons);
-    setCurrentBatchIndex(0);
+    setImportedURLs(comparisons);
+    setShowImportedURLs(true);
     setShowCSVImport(false);
+    setBatchComparisons([]);
     setBatchResults([]);
+    setCurrentBatchIndex(0);
     
-    // Auto-start batch processing if there are comparisons
-    if (comparisons.length > 0) {
-      startBatchProcessing(comparisons);
-    }
+    // Don't auto-start batch processing - let user review and configure first
+  };
+
+  const startBatchProcessingFromImported = () => {
+    if (importedURLs.length === 0) return;
+    
+    setBatchComparisons(importedURLs);
+    setCurrentBatchIndex(0);
+    setShowImportedURLs(false);
+    setImportedURLs([]);
+    
+    // Start batch processing with current form settings
+    startBatchProcessing(importedURLs);
+  };
+
+  const clearImportedURLs = () => {
+    setImportedURLs([]);
+    setShowImportedURLs(false);
+    setBatchComparisons([]);
+    setBatchResults([]);
+    setCurrentBatchIndex(0);
   };
 
   const startBatchProcessing = async (comparisons) => {
@@ -337,6 +359,12 @@ function App() {
     
     if (!validateUrls()) return;
 
+    // Check if there are imported URLs that should be processed instead
+    if (showImportedURLs && importedURLs.length > 0) {
+      setError('You have imported URLs ready for batch processing. Please use the "Start Batch Comparison" button above, or clear the imported URLs first.');
+      return;
+    }
+
     await processComparison(formData.urlA, formData.urlB);
   };
 
@@ -500,16 +528,85 @@ function App() {
           <section className="form-section">
             <div className="form-header">
               <h2>Compare Two Websites</h2>
+            </div>
+            
+            <div className="form-actions">
               <button
+                type="button"
+                className="btn btn-secondary"
                 onClick={() => setShowCSVImport(true)}
-                className="btn btn-secondary csv-import-btn"
               >
                 <FileText size={16} />
                 Import from CSV
               </button>
             </div>
+
+            {/* Imported URLs Section */}
+            {showImportedURLs && importedURLs.length > 0 && (
+              <div className="imported-urls-section">
+                <div className="section-header">
+                  <h3>📁 Imported URLs from CSV</h3>
+                  <span className="url-count">{importedURLs.length} URL pairs ready for comparison</span>
+                </div>
+                
+                <div className="imported-urls-list">
+                  {importedURLs.slice(0, 5).map((comparison, index) => (
+                    <div key={index} className="imported-url-pair">
+                      <div className="url-item">
+                        <span className="url-label">Site A:</span>
+                        <span className="url-value" title={comparison.urlA}>
+                          {comparison.urlA.length > 50 
+                            ? comparison.urlA.substring(0, 50) + '...' 
+                            : comparison.urlA}
+                        </span>
+                      </div>
+                      <div className="url-item">
+                        <span className="url-label">Site B:</span>
+                        <span className="url-value" title={comparison.urlB}>
+                          {comparison.urlB.length > 50 
+                            ? comparison.urlB.substring(0, 50) + '...' 
+                            : comparison.urlB}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  {importedURLs.length > 5 && (
+                    <div className="more-urls">
+                      ... and {importedURLs.length - 5} more URL pairs
+                    </div>
+                  )}
+                </div>
+
+                <div className="imported-urls-actions">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={startBatchProcessingFromImported}
+                  >
+                    🚀 Start Batch Comparison ({importedURLs.length} URLs)
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={clearImportedURLs}
+                  >
+                    ✕ Clear Imported URLs
+                  </button>
+                </div>
+
+                <div className="imported-urls-note">
+                  💡 Configure your comparison options below before starting the batch process
+                </div>
+              </div>
+            )}
             
             <form onSubmit={handleSubmit}>
+              {showImportedURLs && importedURLs.length > 0 && (
+                <div className="form-note">
+                  <p>📝 <strong>Single Comparison Form:</strong> Use this form for individual URL comparisons. For the imported URLs above, use the "Start Batch Comparison" button.</p>
+                </div>
+              )}
+              
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="urlA">Original Site URL *</label>

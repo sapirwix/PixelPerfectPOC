@@ -178,9 +178,9 @@ const CSVImport = ({ onImport, onClose }) => {
               </div>
 
               <div className="url-preview">
-                <h4>First 5 URL pairs:</h4>
+                <h4>All URL pairs ({parsedData.comparisons.length} total):</h4>
                 <div className="url-list">
-                  {parsedData.comparisons.slice(0, 5).map((comparison, index) => (
+                  {parsedData.comparisons.map((comparison, index) => (
                     <div key={index} className="url-pair">
                       <div className="url-item">
                         <span className="url-label">Site A:</span>
@@ -200,11 +200,6 @@ const CSVImport = ({ onImport, onClose }) => {
                       </div>
                     </div>
                   ))}
-                  {parsedData.comparisons.length > 5 && (
-                    <div className="more-urls">
-                      ... and {parsedData.comparisons.length - 5} more
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -215,7 +210,7 @@ const CSVImport = ({ onImport, onClose }) => {
                   disabled={isProcessing}
                 >
                   <Upload size={16} />
-                  Import {parsedData.totalRows} URL Pairs
+                  Review & Configure ({parsedData.totalRows} URLs)
                 </button>
                 <button 
                   onClick={() => setParsedData(null)}

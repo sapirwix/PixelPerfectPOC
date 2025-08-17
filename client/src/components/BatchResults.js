@@ -53,32 +53,30 @@ const BatchResults = ({ results, onClose, onNewComparison }) => {
   };
 
   const downloadAllResultsCSV = () => {
-    // Create CSV content with the specified columns
+    // Create CSV content with the same columns as single comparison
     const csvContent = [
-      ['Original Website', 'Migrated Website', 'Content', 'Design', 'Diff Link', 'Status']
+      ['Original Site', 'Migrated Site', 'Content', 'Design', 'Diff URL']
     ];
 
     // Add data rows
-    results.forEach(result => {
+    results.forEach((result, index) => {
       if (result.error) {
         // For failed comparisons
         csvContent.push([
           result.urlA || 'N/A',
           result.urlB || 'N/A',
-          'Comparison failed',
+          `Error: ${result.error}`,
           'N/A',
-          'N/A',
-          'Failed'
+          `Failed comparison ${index + 1}`
         ]);
       } else {
         // For successful comparisons
         csvContent.push([
           result.urlA || result.urls?.A || 'N/A',
           result.urlB || result.urls?.B || 'N/A',
-          `${result.metrics?.changedPixels?.toLocaleString() || 'N/A'} changed pixels`,
-          `${result.metrics?.mismatchPercent || 'N/A'}% mismatch`,
-          `data:image/png;base64,${result.images?.diff || 'N/A'}`,
-          'Success'
+          `${result.metrics?.mismatchPercent || 0}% mismatch, ${(result.metrics?.changedPixels || 0).toLocaleString()} pixels changed`,
+          `${result.metrics?.width || 'N/A'} × ${result.metrics?.height || 'N/A'} dimensions, SSIM: ${result.metrics?.ssimScore || 'N/A'}`,
+          `Comparison ID: ${result.id || `batch-${index + 1}`}`
         ]);
       }
     });
@@ -92,7 +90,7 @@ const BatchResults = ({ results, onClose, onNewComparison }) => {
     const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `batch-comparison-results-${Date.now()}.csv`;
+    link.download = `batch-comparison-${results.length}-results-${Date.now()}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -114,15 +112,15 @@ const BatchResults = ({ results, onClose, onNewComparison }) => {
   const downloadCurrentResultCSV = () => {
     if (!currentResult || currentResult.error) return;
     
-    // Create CSV content with the specified columns
+    // Create CSV content with the same columns as other CSV downloads
     const csvContent = [
-      ['Original Website', 'Migrated Website', 'Content', 'Design', 'Diff Link'],
+      ['Original Site', 'Migrated Site', 'Content', 'Design', 'Diff URL'],
       [
         currentResult.urlA || currentResult.urls?.A || 'N/A',
         currentResult.urlB || currentResult.urls?.B || 'N/A',
-        `${currentResult.metrics?.changedPixels?.toLocaleString() || 'N/A'} changed pixels`,
-        `${currentResult.metrics?.mismatchPercent || 'N/A'}% mismatch`,
-        `data:image/png;base64,${currentResult.images?.diff || 'N/A'}`
+        `${currentResult.metrics?.mismatchPercent || 0}% mismatch, ${(currentResult.metrics?.changedPixels || 0).toLocaleString()} pixels changed`,
+        `${currentResult.metrics?.width || 'N/A'} × ${currentResult.metrics?.height || 'N/A'} dimensions, SSIM: ${currentResult.metrics?.ssimScore || 'N/A'}`,
+        `Comparison ID: ${currentResult.id || 'N/A'}`
       ]
     ];
 

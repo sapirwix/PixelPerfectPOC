@@ -362,6 +362,62 @@ function App() {
     document.body.removeChild(link);
   };
 
+  const downloadResultsCSV = () => {
+    if (!results) return;
+
+    // Determine if this is a batch result or single comparison
+    const isBatchResult = Array.isArray(results) && results.length > 0;
+    const dataToProcess = isBatchResult ? results : [results];
+
+    // Create CSV data with the specified columns
+    const csvData = [
+      ['Original Site', 'Migrated Site', 'Content', 'Design', 'Diff URL']
+    ];
+
+    // Process each comparison result
+    dataToProcess.forEach((result, index) => {
+      if (result && result.metrics) {
+        csvData.push([
+          result.urls?.A || result.urlA || 'N/A',
+          result.urls?.B || result.urlB || 'N/A',
+          `${result.metrics.mismatchPercent || 0}% mismatch, ${(result.metrics.changedPixels || 0).toLocaleString()} pixels changed`,
+          `${result.metrics.width || 'N/A'} × ${result.metrics.height || 'N/A'} dimensions, SSIM: ${result.metrics.ssimScore || 'N/A'}`,
+          `Comparison ID: ${result.id || `batch-${index + 1}`}`
+        ]);
+      } else if (result && result.error) {
+        // Handle failed comparisons
+        csvData.push([
+          result.urlA || 'N/A',
+          result.urlB || 'N/A',
+          `Error: ${result.error}`,
+          'N/A',
+          `Failed comparison ${index + 1}`
+        ]);
+      }
+    });
+
+    // Convert to CSV string
+    const csvString = csvData.map(row => 
+      row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+
+    // Create and download the CSV file
+    const csvBlob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(csvBlob);
+    
+    // Set filename based on whether it's batch or single
+    if (isBatchResult) {
+      link.download = `batch-comparison-${dataToProcess.length}-results-${Date.now()}.csv`;
+    } else {
+      link.download = `comparison-${results.id || Date.now()}.csv`;
+    }
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const resetForm = () => {
     setFormData({
       urlA: '',
@@ -676,31 +732,17 @@ function App() {
                 <div className="download-section">
                   <button
                     className="btn btn-secondary"
-                    onClick={() => downloadImage(results.images.A, 'site-a.png')}
-                  >
-                    <Download size={16} />
-                    Download Site A
-                  </button>
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => downloadImage(results.images.B, 'site-b.png')}
-                  >
-                    <Download size={16} />
-                    Download Site B
-                  </button>
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => downloadImage(results.images.diff, 'diff.png')}
-                  >
-                    <Download size={16} />
-                    Download Diff
-                  </button>
-                  <button
-                    className="btn btn-secondary"
                     onClick={downloadResults}
                   >
                     <Download size={16} />
                     Download JSON
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={downloadResultsCSV}
+                  >
+                    <Download size={16} />
+                    Download CSV
                   </button>
                 </div>
               </div>

@@ -453,7 +453,7 @@ function App() {
             <form onSubmit={handleSubmit}>
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="urlA">Website A URL *</label>
+                  <label htmlFor="urlA">Original Site URL *</label>
                   <input
                     type="url"
                     id="urlA"
@@ -467,7 +467,7 @@ function App() {
                 </div>
                 
                 <div className="form-group">
-                  <label htmlFor="urlB">Website B URL *</label>
+                  <label htmlFor="urlB">Migrated Site URL *</label>
                   <input
                     type="url"
                     id="urlB"
@@ -724,11 +724,11 @@ function App() {
 
               {/* Comparison Viewer */}
               <div className="comparison-viewer">
-                <div className="image-container" onClick={() => openModal(results.images.A, results.urls.A, 'Site A')}>
-                  <h4>Site A</h4>
+                <div className="image-container" onClick={() => openModal(results.images.A, results.urls.A, 'Original Site')}>
+                  <h4>Original Site</h4>
                   <img
                     src={`data:image/png;base64,${results.images.A}`}
-                    alt="Site A Screenshot"
+                    alt="Original Site Screenshot"
                     className="comparison-image"
                   />
                   <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
@@ -736,11 +736,11 @@ function App() {
                   </p>
                 </div>
 
-                <div className="image-container" onClick={() => openModal(results.images.B, results.urls.B, 'Site B')}>
-                  <h4>Site B</h4>
+                <div className="image-container" onClick={() => openModal(results.images.B, results.urls.B, 'Migrated Site')}>
+                  <h4>Migrated Site</h4>
                   <img
                     src={`data:image/png;base64,${results.images.B}`}
-                    alt="Site B Screenshot"
+                    alt="Migrated Site Screenshot"
                     className="comparison-image"
                   />
                   <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>

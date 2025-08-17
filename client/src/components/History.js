@@ -323,7 +323,7 @@ const History = ({ onDeleteComparison }) => {
                     <div className="item-content">
                       <div className="urls-section">
                         <div className="url-item">
-                          <span className="url-label">Site A:</span>
+                          <span className="url-label">Original Site:</span>
                           <span className="url-value" title={getUrlA(item)}>
                             {getUrlA(item).length > 50 
                               ? getUrlA(item).substring(0, 50) + '...' 
@@ -331,7 +331,7 @@ const History = ({ onDeleteComparison }) => {
                           </span>
                         </div>
                         <div className="url-item">
-                          <span className="url-label">Site B:</span>
+                          <span className="url-label">Migrated Site:</span>
                           <span className="url-value" title={getUrlB(item)}>
                             {getUrlB(item).length > 50 
                               ? getUrlB(item).substring(0, 50) + '...' 
@@ -395,10 +395,10 @@ const History = ({ onDeleteComparison }) => {
                     <h3>URLs Compared</h3>
                     <div className="url-details">
                       <div className="url-detail">
-                        <strong>Site A:</strong> {getUrlA(selectedComparison)}
+                        <strong>Original Site:</strong> {getUrlA(selectedComparison)}
                       </div>
                       <div className="url-detail">
-                        <strong>Site B:</strong> {getUrlB(selectedComparison)}
+                        <strong>Migrated Site:</strong> {getUrlB(selectedComparison)}
                       </div>
                     </div>
                   </div>
@@ -451,12 +451,12 @@ const History = ({ onDeleteComparison }) => {
                       <h3>Screenshots</h3>
                       <div className="images-grid">
                         <div className="image-item">
-                          <h4>Site A</h4>
-                          <img
-                            src={`data:image/png;base64,${selectedComparison.images.A}`}
-                            alt="Site A Screenshot"
-                            className="detail-image"
-                          />
+                                              <h4>Original Site</h4>
+                    <img
+                      src={`data:image/png;base64,${selectedComparison.images.A}`}
+                      alt="Original Site Screenshot"
+                      className="detail-image"
+                    />
                           <button
                             onClick={() => downloadImage(selectedComparison.images.A, 'site-a.png')}
                             className="btn btn-secondary"

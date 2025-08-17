@@ -39,14 +39,7 @@ const BatchResults = ({ results, onClose, onNewComparison }) => {
     }
   };
 
-  const downloadImage = (base64Data, filename) => {
-    const link = document.createElement('a');
-    link.href = `data:image/png;base64,${base64Data}`;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+
 
   const downloadAllResults = () => {
     const dataStr = JSON.stringify(results, null, 2);
@@ -54,6 +47,52 @@ const BatchResults = ({ results, onClose, onNewComparison }) => {
     const link = document.createElement('a');
     link.href = URL.createObjectURL(dataBlob);
     link.download = `batch-comparison-${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const downloadAllResultsCSV = () => {
+    // Create CSV content with the specified columns
+    const csvContent = [
+      ['Original Website', 'Migrated Website', 'Content', 'Design', 'Diff Link', 'Status']
+    ];
+
+    // Add data rows
+    results.forEach(result => {
+      if (result.error) {
+        // For failed comparisons
+        csvContent.push([
+          result.urlA || 'N/A',
+          result.urlB || 'N/A',
+          'Comparison failed',
+          'N/A',
+          'N/A',
+          'Failed'
+        ]);
+      } else {
+        // For successful comparisons
+        csvContent.push([
+          result.urlA || result.urls?.A || 'N/A',
+          result.urlB || result.urls?.B || 'N/A',
+          `${result.metrics?.changedPixels?.toLocaleString() || 'N/A'} changed pixels`,
+          `${result.metrics?.mismatchPercent || 'N/A'}% mismatch`,
+          `data:image/png;base64,${result.images?.diff || 'N/A'}`,
+          'Success'
+        ]);
+      }
+    });
+
+    // Convert to CSV string
+    const csvString = csvContent
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    // Create and download CSV file
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `batch-comparison-results-${Date.now()}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -67,6 +106,36 @@ const BatchResults = ({ results, onClose, onNewComparison }) => {
     const link = document.createElement('a');
     link.href = URL.createObjectURL(dataBlob);
     link.download = `comparison-${currentResult.id || Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const downloadCurrentResultCSV = () => {
+    if (!currentResult || currentResult.error) return;
+    
+    // Create CSV content with the specified columns
+    const csvContent = [
+      ['Original Website', 'Migrated Website', 'Content', 'Design', 'Diff Link'],
+      [
+        currentResult.urlA || currentResult.urls?.A || 'N/A',
+        currentResult.urlB || currentResult.urls?.B || 'N/A',
+        `${currentResult.metrics?.changedPixels?.toLocaleString() || 'N/A'} changed pixels`,
+        `${currentResult.metrics?.mismatchPercent || 'N/A'}% mismatch`,
+        `data:image/png;base64,${currentResult.images?.diff || 'N/A'}`
+      ]
+    ];
+
+    // Convert to CSV string
+    const csvString = csvContent
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    // Create and download CSV file
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `comparison-result-${currentResult.id || Date.now()}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -228,40 +297,20 @@ const BatchResults = ({ results, onClose, onNewComparison }) => {
             <div className="details-header">
               <h3>Result {currentIndex + 1} Details</h3>
               <div className="detail-actions">
-                {!currentResult.error && (
-                  <>
-                    <button
-                      onClick={() => downloadImage(currentResult.images?.A, 'site-a.png')}
-                      className="btn btn-secondary"
-                      disabled={!currentResult.images?.A}
-                    >
-                      <Download size={16} />
-                      Site A
-                    </button>
-                    <button
-                      onClick={() => downloadImage(currentResult.images?.B, 'site-b.png')}
-                      className="btn btn-secondary"
-                      disabled={!currentResult.images?.B}
-                    >
-                      <Download size={16} />
-                      Site B
-                    </button>
-                    <button
-                      onClick={() => downloadImage(currentResult.images?.diff, 'diff.png')}
-                      className="btn btn-secondary"
-                      disabled={!currentResult.images?.diff}
-                    >
-                      <Download size={16} />
-                      Diff
-                    </button>
-                  </>
-                )}
                 <button
                   onClick={downloadCurrentResult}
                   className="btn btn-secondary"
                 >
                   <Download size={16} />
                   JSON
+                </button>
+                <button
+                  onClick={downloadCurrentResultCSV}
+                  className="btn btn-secondary"
+                  disabled={currentResult.error}
+                >
+                  <FileText size={16} />
+                  CSV
                 </button>
               </div>
             </div>
@@ -304,18 +353,18 @@ const BatchResults = ({ results, onClose, onNewComparison }) => {
                 {currentResult.images && (
                   <div className="comparison-images">
                     <div className="image-container">
-                      <h4>Site A</h4>
+                      <h4>Original Site</h4>
                       <img
                         src={`data:image/png;base64,${currentResult.images.A}`}
-                        alt="Site A Screenshot"
+                        alt="Original Site Screenshot"
                         className="comparison-image"
                       />
                     </div>
                     <div className="image-container">
-                      <h4>Site B</h4>
+                      <h4>Migrated Site</h4>
                       <img
                         src={`data:image/png;base64,${currentResult.images.B}`}
-                        alt="Site B Screenshot"
+                        alt="Migrated Site Screenshot"
                         className="comparison-image"
                       />
                     </div>
@@ -343,6 +392,13 @@ const BatchResults = ({ results, onClose, onNewComparison }) => {
             >
               <Download size={16} />
               Download All Results
+            </button>
+            <button
+              onClick={downloadAllResultsCSV}
+              className="btn btn-secondary"
+            >
+              <FileText size={16} />
+              Download CSV
             </button>
             <button
               onClick={onNewComparison}

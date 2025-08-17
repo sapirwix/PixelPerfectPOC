@@ -466,12 +466,12 @@ const History = ({ onDeleteComparison }) => {
                           </button>
                         </div>
                         <div className="image-item">
-                          <h4>Site B</h4>
-                          <img
-                            src={`data:image/png;base64,${selectedComparison.images.B}`}
-                            alt="Site B Screenshot"
-                            className="detail-image"
-                          />
+                                                  <h4>Migrated Site</h4>
+                        <img
+                          src={`data:image/png;base64,${selectedComparison.images.B}`}
+                          alt="Migrated Site Screenshot"
+                          className="detail-image"
+                        />
                           <button
                             onClick={() => downloadImage(selectedComparison.images.B, 'site-b.png')}
                             className="btn btn-secondary"

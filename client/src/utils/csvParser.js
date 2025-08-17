@@ -147,7 +147,7 @@ const parseCSVLine = (line) => {
 
 // Generate CSV template
 export const generateCSVTemplate = () => {
-  const template = `Site A URL,Site B URL,Description
+  const template = `Original Site URL,Migrated Site URL,Description
 https://example.com,https://example2.com,Compare homepage designs
 https://example.com/about,https://example2.com/about,Compare about pages
 https://example.com/contact,https://example2.com/contact,Compare contact pages`;

@@ -183,7 +183,7 @@ const CSVImport = ({ onImport, onClose }) => {
                   {parsedData.comparisons.map((comparison, index) => (
                     <div key={index} className="url-pair">
                       <div className="url-item">
-                        <span className="url-label">Site A:</span>
+                        <span className="url-label">Original Site:</span>
                         <span className="url-value" title={comparison.urlA}>
                           {comparison.urlA.length > 40 
                             ? comparison.urlA.substring(0, 40) + '...' 
@@ -191,7 +191,7 @@ const CSVImport = ({ onImport, onClose }) => {
                         </span>
                       </div>
                       <div className="url-item">
-                        <span className="url-label">Site B:</span>
+                        <span className="url-label">Migrated Site:</span>
                         <span className="url-value" title={comparison.urlB}>
                           {comparison.urlB.length > 40 
                             ? comparison.urlB.substring(0, 40) + '...' 

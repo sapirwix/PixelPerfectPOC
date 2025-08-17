@@ -552,22 +552,22 @@ function App() {
                 <div className="imported-urls-list">
                   {importedURLs.slice(0, 5).map((comparison, index) => (
                     <div key={index} className="imported-url-pair">
-                      <div className="url-item">
-                        <span className="url-label">Site A:</span>
-                        <span className="url-value" title={comparison.urlA}>
-                          {comparison.urlA.length > 50 
-                            ? comparison.urlA.substring(0, 50) + '...' 
-                            : comparison.urlA}
-                        </span>
-                      </div>
-                      <div className="url-item">
-                        <span className="url-label">Site B:</span>
-                        <span className="url-value" title={comparison.urlB}>
-                          {comparison.urlB.length > 50 
-                            ? comparison.urlB.substring(0, 50) + '...' 
-                            : comparison.urlB}
-                        </span>
-                      </div>
+                                        <div className="url-item">
+                    <span className="url-label">Original Site:</span>
+                    <span className="url-value" title={comparison.urlA}>
+                      {comparison.urlA.length > 50 
+                        ? comparison.urlA.substring(0, 50) + '...' 
+                        : comparison.urlA}
+                    </span>
+                  </div>
+                  <div className="url-item">
+                    <span className="url-label">Migrated Site:</span>
+                    <span className="url-value" title={comparison.urlB}>
+                      {comparison.urlB.length > 50 
+                        ? comparison.urlB.substring(0, 50) + '...' 
+                        : comparison.urlB}
+                    </span>
+                  </div>
                     </div>
                   ))}
                   {importedURLs.length > 5 && (

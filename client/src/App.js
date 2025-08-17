@@ -205,7 +205,7 @@ function App() {
         }, 500);
       }
 
-      const response = await axios.post('/api/compare-ui', {
+      const requestData = {
         urlA,
         urlB,
         options: {
@@ -215,7 +215,9 @@ function App() {
           waitFor: formData.waitFor,
           maskSelectors: formData.maskSelectors.split(',').map(s => s.trim()).filter(Boolean)
         }
-      });
+      };
+
+      const response = await axios.post('/api/compare-ui', requestData);
 
       if (progressInterval) {
         clearInterval(progressInterval);
@@ -261,6 +263,7 @@ function App() {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -722,6 +725,90 @@ function App() {
                 </div>
               </div>
 
+              {/* Capture Status Summary */}
+              <div style={{ 
+                marginTop: '2rem', 
+                padding: '1rem', 
+                background: 'var(--background-color)', 
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)'
+              }}>
+                <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-primary)' }}>📸 Capture Status</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div style={{ 
+                    padding: '1rem', 
+                    background: results.metadata.A.fullPage ? 'rgba(0,255,0,0.1)' : 'rgba(255,165,0,0.1)',
+                    borderRadius: '8px',
+                    border: `2px solid ${results.metadata.A.fullPage ? 'var(--success-color)' : 'var(--warning-color)'}`
+                  }}>
+                    <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>Original Site</h5>
+                    <div style={{ fontSize: '0.875rem' }}>
+                      <div><strong>Status:</strong> {results.metadata.A.fullPage ? '✅ Full Page Capture' : '⚠️ Viewport Only'}</div>
+                      <div><strong>Method:</strong> {results.metadata.A.captureMethod || 'N/A'}</div>
+                      <div><strong>Page Dimensions:</strong> {results.metadata.A.pageDimensions?.scrollWidth || 'N/A'} × {results.metadata.A.pageDimensions?.scrollHeight || 'N/A'}</div>
+                      {results.metadata.A.capturedDimensions && (
+                        <div><strong>Captured:</strong> {results.metadata.A.capturedDimensions.capturedWidth} × {results.metadata.A.capturedDimensions.capturedHeight}</div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div style={{ 
+                    padding: '1rem', 
+                    background: results.metadata.B.fullPage ? 'rgba(0,255,0,0.1)' : 'rgba(255,165,0,0.1)',
+                    borderRadius: '8px',
+                    border: `2px solid ${results.metadata.B.fullPage ? 'var(--success-color)' : 'var(--warning-color)'}`
+                  }}>
+                    <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>Migrated Site</h5>
+                    <div style={{ fontSize: '0.875rem' }}>
+                      <div><strong>Status:</strong> {results.metadata.B.fullPage ? '✅ Full Page Capture' : '⚠️ Viewport Only'}</div>
+                      <div><strong>Method:</strong> {results.metadata.B.captureMethod || 'N/A'}</div>
+                      <div><strong>Page Dimensions:</strong> {results.metadata.B.pageDimensions?.scrollWidth || 'N/A'} × {results.metadata.B.pageDimensions?.scrollHeight || 'N/A'}</div>
+                      {results.metadata.B.capturedDimensions && (
+                        <div><strong>Captured:</strong> {results.metadata.B.capturedDimensions.capturedWidth} × {results.metadata.B.capturedDimensions.capturedHeight}</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {results.metadata.A.fullPage && results.metadata.B.fullPage ? (
+                  <div style={{ 
+                    marginTop: '1rem', 
+                    padding: '0.75rem', 
+                    background: 'rgba(0,255,0,0.1)', 
+                    borderRadius: '6px',
+                    border: '1px solid var(--success-color)',
+                    color: 'var(--success-color)',
+                    fontWeight: 'bold'
+                  }}>
+                    🎉 Both sites captured with full page mode enabled!
+                  </div>
+                ) : results.metadata.A.fullPage || results.metadata.B.fullPage ? (
+                  <div style={{ 
+                    marginTop: '1rem', 
+                    padding: '0.75rem', 
+                    background: 'rgba(255,165,0,0.1)', 
+                    borderRadius: '6px',
+                    border: '1px solid var(--warning-color)',
+                    color: 'var(--warning-color)',
+                    fontWeight: 'bold'
+                  }}>
+                    ⚠️ Mixed capture methods detected. One site used full page, the other used viewport.
+                  </div>
+                ) : (
+                  <div style={{ 
+                    marginTop: '1rem', 
+                    padding: '0.75rem', 
+                    background: 'rgba(255,0,0,0.1)', 
+                    borderRadius: '6px',
+                    border: '1px solid var(--error-color)',
+                    color: 'var(--error-color)',
+                    fontWeight: 'bold'
+                  }}>
+                    ❌ Both sites captured with viewport mode only. Full page capture was not used.
+                  </div>
+                )}
+              </div>
+
               {/* Comparison Viewer */}
               <div className="comparison-viewer">
                 <div className="image-container" onClick={() => openModal(results.images.A, results.urls.A, 'Original Site')}>
@@ -731,6 +818,26 @@ function App() {
                     alt="Original Site Screenshot"
                     className="comparison-image"
                   />
+                  <div style={{ 
+                    fontSize: '0.75rem', 
+                    color: 'var(--text-secondary)', 
+                    marginTop: '0.5rem',
+                    padding: '0.5rem',
+                    background: 'rgba(0,0,0,0.05)',
+                    borderRadius: '4px'
+                  }}>
+                    {results.metadata.A.fullPage ? '📄 Full Page' : '📱 Viewport'} • {results.metadata.A.pageDimensions?.scrollWidth || 'N/A'} × {results.metadata.A.pageDimensions?.scrollHeight || 'N/A'}
+                  </div>
+                  <div style={{ 
+                    fontSize: '0.7rem', 
+                    color: 'var(--success-color)', 
+                    marginTop: '0.25rem',
+                    padding: '0.25rem',
+                    background: 'rgba(0,255,0,0.1)',
+                    borderRadius: '4px'
+                  }}>
+                    🖼️ Image: {results.metadata.A.pageDimensions?.scrollWidth || 'N/A'} × {results.metadata.A.pageDimensions?.scrollHeight || 'N/A'}
+                  </div>
                   <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
                     {results.urls.A}
                   </p>
@@ -743,6 +850,26 @@ function App() {
                     alt="Migrated Site Screenshot"
                     className="comparison-image"
                   />
+                  <div style={{ 
+                    fontSize: '0.75rem', 
+                    color: 'var(--text-secondary)', 
+                    marginTop: '0.5rem',
+                    padding: '0.5rem',
+                    background: 'rgba(0,0,0,0.05)',
+                    borderRadius: '4px'
+                  }}>
+                    {results.metadata.B.fullPage ? '📄 Full Page' : '📱 Viewport'} • {results.metadata.B.pageDimensions?.scrollWidth || 'N/A'} × {results.metadata.B.pageDimensions?.scrollHeight || 'N/A'}
+                  </div>
+                  <div style={{ 
+                    fontSize: '0.7rem', 
+                    color: 'var(--success-color)', 
+                    marginTop: '0.25rem',
+                    padding: '0.25rem',
+                    background: 'rgba(0,255,0,0.1)',
+                    borderRadius: '4px'
+                  }}>
+                    🖼️ Image: {results.metadata.B.pageDimensions?.scrollWidth || 'N/A'} × {results.metadata.B.pageDimensions?.scrollHeight || 'N/A'}
+                  </div>
                   <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
                     {results.urls.B}
                   </p>

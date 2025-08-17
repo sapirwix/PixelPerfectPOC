@@ -6,8 +6,9 @@ async function testFullPageCapture() {
   const service = new ScreenshotService();
   
   try {
-    // Test with a simple URL that should have content below the fold
-    const testUrl = 'https://httpbin.org/html';
+    // Test with a URL that should have content below the fold
+    // Using a GitHub page which typically has long content
+    const testUrl = 'https://github.com/microsoft/Playwright/tree/main/docs/api';
     
     console.log(`📸 Testing with URL: ${testUrl}\n`);
     
@@ -42,14 +43,14 @@ async function testFullPageCapture() {
     console.log(`   Screenshot size: ${fullPageResult.buffer.length} bytes\n`);
     
     // Compare results
-    const viewportHeight = viewportResult.metadata.pageDimensions.scrollHeight;
-    const fullPageHeight = fullPageResult.metadata.pageDimensions.scrollHeight;
+    const viewportHeight = viewportResult.metadata.capturedDimensions?.capturedHeight || viewportResult.metadata.pageDimensions.scrollHeight;
+    const fullPageHeight = fullPageResult.metadata.capturedDimensions?.capturedHeight || fullPageResult.metadata.pageDimensions.scrollHeight;
     const viewportSize = viewportResult.buffer.length;
     const fullPageSize = fullPageResult.buffer.length;
     
     console.log('📊 Comparison Results:');
-    console.log(`   Viewport height: ${viewportHeight}px`);
-    console.log(`   Full page height: ${fullPageHeight}px`);
+    console.log(`   Viewport captured height: ${viewportHeight}px`);
+    console.log(`   Full page captured height: ${fullPageHeight}px`);
     console.log(`   Height difference: ${fullPageHeight - viewportHeight}px`);
     console.log(`   Viewport file size: ${(viewportSize / 1024).toFixed(1)} KB`);
     console.log(`   Full page file size: ${(fullPageSize / 1024).toFixed(1)} KB`);

@@ -55,7 +55,7 @@ const BatchResults = ({ results, onClose, onNewComparison }) => {
   const downloadAllResultsCSV = () => {
     // Create CSV content with the same columns as single comparison
     const csvContent = [
-      ['Original Site', 'Migrated Site', 'Content', 'Design', 'Diff URL']
+      ['Original Site', 'Migrated Site', 'Content', 'Layout', 'Diff URL']
     ];
 
     // Add data rows
@@ -65,17 +65,21 @@ const BatchResults = ({ results, onClose, onNewComparison }) => {
         csvContent.push([
           result.urlA || 'N/A',
           result.urlB || 'N/A',
-          `Error: ${result.error}`,
-          'N/A',
+          '✗',
+          '✗',
           `Failed comparison ${index + 1}`
         ]);
       } else {
         // For successful comparisons
+        const mismatchPercent = result.metrics?.mismatchPercent || 0;
+        const isContentGood = mismatchPercent < 10;
+        const isLayoutGood = mismatchPercent < 10;
+        
         csvContent.push([
           result.urlA || result.urls?.A || 'N/A',
           result.urlB || result.urls?.B || 'N/A',
-          `${result.metrics?.mismatchPercent || 0}% mismatch, ${(result.metrics?.changedPixels || 0).toLocaleString()} pixels changed`,
-          `${result.metrics?.width || 'N/A'} × ${result.metrics?.height || 'N/A'} dimensions, SSIM: ${result.metrics?.ssimScore || 'N/A'}`,
+          isContentGood ? '✓' : '✗',
+          isLayoutGood ? '✓' : '✗',
           `Comparison ID: ${result.id || `batch-${index + 1}`}`
         ]);
       }
@@ -114,12 +118,12 @@ const BatchResults = ({ results, onClose, onNewComparison }) => {
     
     // Create CSV content with the same columns as other CSV downloads
     const csvContent = [
-      ['Original Site', 'Migrated Site', 'Content', 'Design', 'Diff URL'],
+      ['Original Site', 'Migrated Site', 'Content', 'Layout', 'Diff URL'],
       [
         currentResult.urlA || currentResult.urls?.A || 'N/A',
         currentResult.urlB || currentResult.urls?.B || 'N/A',
-        `${currentResult.metrics?.mismatchPercent || 0}% mismatch, ${(currentResult.metrics?.changedPixels || 0).toLocaleString()} pixels changed`,
-        `${currentResult.metrics?.width || 'N/A'} × ${currentResult.metrics?.height || 'N/A'} dimensions, SSIM: ${currentResult.metrics?.ssimScore || 'N/A'}`,
+        (currentResult.metrics?.mismatchPercent || 0) < 10 ? '✓' : '✗',
+        (currentResult.metrics?.mismatchPercent || 0) < 10 ? '✓' : '✗',
         `Comparison ID: ${currentResult.id || 'N/A'}`
       ]
     ];

@@ -399,17 +399,21 @@ function App() {
 
     // Create CSV data with the specified columns
     const csvData = [
-      ['Original Site', 'Migrated Site', 'Content', 'Design', 'Diff URL']
+      ['Original Site', 'Migrated Site', 'Content', 'Layout', 'Diff URL']
     ];
 
     // Process each comparison result
     dataToProcess.forEach((result, index) => {
       if (result && result.metrics) {
+        const mismatchPercent = result.metrics.mismatchPercent || 0;
+        const isContentGood = mismatchPercent < 10;
+        const isLayoutGood = mismatchPercent < 10;
+        
         csvData.push([
           result.urls?.A || result.urlA || 'N/A',
           result.urls?.B || result.urlB || 'N/A',
-          `${result.metrics.mismatchPercent || 0}% mismatch, ${(result.metrics.changedPixels || 0).toLocaleString()} pixels changed`,
-          `${result.metrics.width || 'N/A'} × ${result.metrics.height || 'N/A'} dimensions, SSIM: ${result.metrics.ssimScore || 'N/A'}`,
+          isContentGood ? '✓' : '✗',
+          isLayoutGood ? '✓' : '✗',
           `Comparison ID: ${result.id || `batch-${index + 1}`}`
         ]);
       } else if (result && result.error) {
@@ -417,8 +421,8 @@ function App() {
         csvData.push([
           result.urlA || 'N/A',
           result.urlB || 'N/A',
-          `Error: ${result.error}`,
-          'N/A',
+          '✗',
+          '✗',
           `Failed comparison ${index + 1}`
         ]);
       }

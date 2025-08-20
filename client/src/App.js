@@ -5,6 +5,7 @@ import Navigation from './components/Navigation';
 import History from './components/History';
 import CSVImport from './components/CSVImport';
 import BatchResults from './components/BatchResults';
+import TextExtraction from './components/TextExtraction';
 import './App.css';
 
 function App() {
@@ -1083,7 +1084,9 @@ function App() {
     <div className="App">
       <Navigation currentPage={currentPage} onPageChange={handlePageChange} />
       
-      {currentPage === 'compare' ? renderComparePage() : <History onDeleteComparison={handleDeleteComparison} />}
+      {currentPage === 'compare' ? renderComparePage() : 
+       currentPage === 'text-extraction' ? <TextExtraction /> :
+       <History onDeleteComparison={handleDeleteComparison} />}
     </div>
   );
 }

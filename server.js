@@ -4,12 +4,15 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const helmet = require('helmet');
 const ScreenshotService = require('./services/screenshotService');
+const TextExtractionService = require('./services/textExtractionService');
+const fs = require('fs'); // Added for PDF download
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Global screenshot service instance
+// Global service instances
 let screenshotService = null;
+let textExtractionService = null;
 
 // Middleware
 app.use(helmet({
@@ -29,14 +32,20 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'client/build')));
 }
 
-// Initialize screenshot service
-async function initializeService() {
+// Initialize services
+async function initializeServices() {
   try {
+    // Initialize screenshot service
     screenshotService = new ScreenshotService();
     await screenshotService.initialize();
     console.log('Screenshot service initialized successfully');
+    
+    // Initialize text extraction service
+    textExtractionService = new TextExtractionService();
+    await textExtractionService.initialize();
+    console.log('Text extraction service initialized successfully');
   } catch (error) {
-    console.error('Failed to initialize screenshot service:', error);
+    console.error('Failed to initialize services:', error);
     process.exit(1);
   }
 }
@@ -301,6 +310,113 @@ app.get('/api/options', (req, res) => {
   });
 });
 
+// Text extraction endpoint
+app.post('/api/extract-text', async (req, res) => {
+  const startTime = Date.now();
+  
+  try {
+    const { url, options = {} } = req.body;
+
+    // Validation
+    if (!url) {
+      return res.status(400).json({
+        error: 'URL is required',
+        code: 'MISSING_URL'
+      });
+    }
+
+    if (!isValidUrl(url)) {
+      return res.status(400).json({
+        error: `Invalid URL: ${url}`,
+        code: 'INVALID_URL'
+      });
+    }
+
+    if (!textExtractionService) {
+      return res.status(503).json({
+        error: 'Text extraction service not initialized',
+        code: 'SERVICE_NOT_READY'
+      });
+    }
+
+    console.log(`Text extraction request for: ${url}`);
+    
+    const result = await textExtractionService.extractTextFromURL(url, options);
+    
+    const duration = Date.now() - startTime;
+    
+    res.json({
+      ...result,
+      performance: {
+        duration,
+        timestamp: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error('Text extraction failed:', error);
+
+    res.status(500).json({
+      error: error.message,
+      code: 'TEXT_EXTRACTION_FAILED',
+      duration,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// PDF download endpoint
+app.get('/api/download-pdf', (req, res) => {
+  try {
+    const { file } = req.query;
+    
+    if (!file) {
+      return res.status(400).json({
+        error: 'File path is required',
+        code: 'MISSING_FILE'
+      });
+    }
+
+    // Security check: ensure the file is within the output directory
+    const outputDir = path.join(__dirname, 'output', 'text-extraction');
+    const requestedPath = path.resolve(file);
+    const normalizedOutputDir = path.resolve(outputDir);
+    
+    console.log('Download request:', { file, requestedPath, normalizedOutputDir });
+    
+    if (!requestedPath.startsWith(normalizedOutputDir)) {
+      return res.status(403).json({
+        error: 'Access denied - file outside output directory',
+        code: 'ACCESS_DENIED'
+      });
+    }
+
+    // Check if file exists
+    if (!fs.existsSync(requestedPath)) {
+      return res.status(404).json({
+        error: 'File not found',
+        code: 'FILE_NOT_FOUND'
+      });
+    }
+
+    // Set headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${path.basename(requestedPath)}"`);
+    
+    // Stream the file
+    const fileStream = fs.createReadStream(requestedPath);
+    fileStream.pipe(res);
+    
+  } catch (error) {
+    console.error('PDF download failed:', error);
+    res.status(500).json({
+      error: 'Failed to download PDF',
+      code: 'DOWNLOAD_FAILED'
+    });
+  }
+});
+
 // Serve React app (in production)
 if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
@@ -388,7 +504,8 @@ app.use('*', (req, res) => {
       'GET /api/health',
       'POST /api/compare-ui',
       'POST /api/compare-multi',
-      'GET /api/options'
+      'GET /api/options',
+      'POST /api/extract-text'
     ]
   });
 });
@@ -399,6 +516,9 @@ process.on('SIGTERM', async () => {
   if (screenshotService) {
     await screenshotService.cleanup();
   }
+  if (textExtractionService) {
+    await textExtractionService.cleanup();
+  }
   process.exit(0);
 });
 
@@ -407,18 +527,22 @@ process.on('SIGINT', async () => {
   if (screenshotService) {
     await screenshotService.cleanup();
   }
+  if (textExtractionService) {
+    await textExtractionService.cleanup();
+  }
   process.exit(0);
 });
 
 // Start server
 async function startServer() {
   try {
-    await initializeService();
+    await initializeServices();
     
     app.listen(PORT, () => {
       console.log(`\n🚀 Pixel Perfect POC Server running on port ${PORT}`);
       console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
       console.log(`🔍 Compare API: POST http://localhost:${PORT}/api/compare-ui`);
+      console.log(`📄 Text Extraction API: POST http://localhost:${PORT}/api/extract-text`);
       
       if (process.env.NODE_ENV !== 'production') {
         console.log(`🌐 Frontend dev server should run on http://localhost:3000`);

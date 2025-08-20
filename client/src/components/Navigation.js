@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, Clock, Home } from 'lucide-react';
+import { Camera, Clock, Home, FileText } from 'lucide-react';
 import './Navigation.css';
 
 const Navigation = ({ currentPage, onPageChange }) => {
@@ -9,6 +9,12 @@ const Navigation = ({ currentPage, onPageChange }) => {
       label: 'Compare',
       icon: Camera,
       description: 'Compare two websites'
+    },
+    {
+      id: 'text-extraction',
+      label: 'Text Extraction',
+      icon: FileText,
+      description: 'Extract pure text content from URLs'
     },
     {
       id: 'history',
